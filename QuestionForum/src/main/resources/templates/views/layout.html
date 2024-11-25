@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en"  xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title th:text="${title != null ? title.replace('Project_MVC', '') : 'Home - Project_MVC'}">Home - Project_MVC</title>
+
+
+    <style>
+        /* Đảm bảo kích thước của avatar không quá lớn */
+#userAvatar {
+    width: 40px; /* Kích thước phù hợp */
+    height: 40px; /* Kích thước phù hợp */
+    border-radius: 50%; /* Đảm bảo ảnh hình tròn */
+    object-fit: cover; /* Đảm bảo ảnh không bị vỡ */
+}
+
+/* Cải thiện hiển thị khi avatar quá nhỏ hoặc quá lớn */
+#usernameDisplay {
+    display: flex;
+    align-items: center;
+}
+
+#displayedUsername {
+    margin-left: 10px; /* Khoảng cách giữa avatar và tên */
+}
+
+    </style>
+</head>
+<body>
+<header>
+    <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom box-shadow mb-3">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/" th:href="@{/}">Blog_SpringBoot</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                <ul class="navbar-nav flex-grow-1">
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" th:href="@{/questions/}">Home</a>
+                    </li>
+
+                    <li id="loginLink" class="nav-item">
+                        <a class="nav-link text-dark" th:href="@{/user/login}">Login</a>
+                    </li>
+                    <li id="registerLink" class="nav-item">
+                        <a class="nav-link text-dark" th:href="@{/user/register}">Register</a>
+                    </li>
+                    <li id="usernameDisplay" class="nav-item d-none d-flex align-items-center">
+                        <img id="userAvatar" src="" alt="Avatar" class="avatar" />
+                        <a th:href="@{/user/profile}" class="nav-link ms-2" id="displayedUsername"></a>
+                    </li>
+                    <li id="logoutLink" class="nav-item d-none">
+                        <a class="nav-link" href="#" onclick="logout()">Logout</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+</header>
+<div class="container">
+    <main role="main" class="pb-3" layout:fragment="body">
+        <!-- Nội dung sẽ được chèn ở đây -->
+        <div th:replace="${body}"></div>
+    </main>
+</div>
+
+
+<script>
+    $(document).ready(function () {
+        const authToken = localStorage.getItem('authToken');
+        const username = localStorage.getItem('username');
+        const avatarUrl = localStorage.getItem('avatarUrl');
+
+        if (authToken) {
+            // Hide Login/Register links, show Username and Avatar
+            $('#loginLink, #registerLink').addClass('d-none');
+            $('#usernameDisplay').removeClass('d-none');
+            $('#displayedUsername').text(username);
+
+            // Set Avatar image or fallback to default
+            if (avatarUrl) {
+                $('#userAvatar').attr('src', avatarUrl);
+            } else {
+                $('#userAvatar').attr('src', '/images/default-avatar.png'); // Fallback avatar
+            }
+
+            // Show Logout link
+            $('#logoutLink').removeClass('d-none');
+        }
+    });
+
+    function logout() {
+        if (confirm('Are you sure you want to log out?')) {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('username');
+            localStorage.removeItem('avatarUrl');
+            window.location.href = '/questions/';
+        }
+    }
+</script>
+</body>
+</html>

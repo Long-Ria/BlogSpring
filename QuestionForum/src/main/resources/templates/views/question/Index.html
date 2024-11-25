@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en"  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="layout">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Blog Filter</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.1/font/bootstrap-icons.css">
+    <style>
+        /* CSS để căn giữa nội dung trong nút */
+        .btn-success {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 40px; /* Chiều rộng của nút */
+            height: 40px; /* Chiều cao của nút */
+            border-radius: 50%; /* Biến nút thành hình tròn */
+        }
+
+        .btn-edit {
+            color: #fff;
+            background-color: #007bff; /* Màu xanh dương cho nút Edit */
+            border-color: #007bff;
+        }
+
+            .btn-edit:hover {
+                background-color: #0056b3;
+                border-color: #0056b3;
+            }
+
+        /* Định dạng nút xóa */
+        .btn-delete {
+            color: #fff;
+            background-color: #dc3545; /* Màu đỏ cho nút Delete */
+            border-color: #dc3545;
+        }
+
+            .btn-delete:hover {
+                background-color: #c82333;
+                border-color: #bd2130;
+            }
+
+            /* Định dạng icon và padding cho nút */
+            .btn-edit i, .btn-delete i {
+                margin-right: 5px; /* Khoảng cách giữa biểu tượng và văn bản */
+            }
+
+        #editQuestionModal .modal-title {
+            font-weight: bold;
+            color: #007bff;
+        }
+
+        #editQuestionModal .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+
+        #pagination button {
+            padding: 5px 10px;
+            margin: 0 5px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        #pagination .active {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+
+        #pagination button:disabled {
+            background-color: #e0e0e0;
+            cursor: not-allowed;
+            color: #777;
+        }
+    </style>
+</head>
+<body layout:fragment="body">
+<div class="container mt-4" >
+    <div class="row">
+        <!-- Bộ lọc bên trái - chiếm 3 cột -->
+        <div class="col-md-3">
+            <div class="card p-3">
+                <h3>Filter Blogs</h3>
+                <form id="filterForm">
+                    <!-- Tìm kiếm từ khóa trong title, author, content -->
+                    <div class="mb-3">
+                        <label for="keyword" class="form-label">Search Keyword:</label>
+                        <input type="text" id="keyword" name="keyword" class="form-control"
+                               placeholder="Enter keyword...">
+                    </div>
+
+                    <!-- Lọc theo thời gian với checkbox -->
+                    <div class="mb-3">
+                        <label class="form-label">Created Time:</label>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="1day" name="dateFilter" value="1">
+                            <label class="form-check-label" for="1day">Last 1 day</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="1week" name="dateFilter" value="7">
+                            <label class="form-check-label" for="1week">Last 1 week</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="1month" name="dateFilter" value="30">
+                            <label class="form-check-label" for="1month">Last 1 month</label>
+                        </div>
+                    </div>
+
+                    <!-- Sort blogs -->
+                    <div class="mb-3">
+                        <label for="sort" class="form-label">Sort By:</label>
+                        <select id="sort" name="sort" class="form-select">
+                            <option value="newest">Newest</option>
+                            <option value="oldest">Oldest</option>
+                        </select>
+                    </div>
+                </form>
+                <button id="applyFilter" type="submit" class="btn btn-primary w-100">Apply Filter</button>
+            </div>
+        </div>
+
+        <!-- Danh sách blog bên phải - chiếm 9 cột -->
+        <div class="col-md-9">
+            <div class="d-flex justify-content-between mb-3">
+                <h2>Blogs</h2>
+                <button id="addQuestion" class="btn btn-success" title="Create Question">
+                    <i class="bi bi-plus-circle"></i> <!-- Biểu tượng thêm -->
+                </button>
+            </div>
+            <div class="row g-3" id="blogList">
+                <!-- Blog 1 -->
+                <div class="col-12">
+                    <div class="card p-3">
+                        <a href="/questions/5">
+                            <h2 class="card-title">Blog Title 1</h2>
+                        </a>
+                        <p class="card-text">By John Doe</p>
+                        <p class="card-text">This is the content of the first blog post...</p>
+                        <p class="card-text text-muted">Created 2 days ago</p>
+                        <p class="card-text">Comments: 5</p>
+                    </div>
+                </div>
+            </div>
+            <div id="pagination">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tạo Câu Hỏi -->
+<div class="modal fade" id="createQuestionModal" tabindex="-1" aria-labelledby="createQuestionModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createQuestionModalLabel">Create Question</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createQuestionForm">
+                    <div class="mb-3">
+                        <label for="questionTitle" class="form-label">Title:</label>
+                        <input type="text" id="questionTitle" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="questionContent" class="form-label">Content:</label>
+                        <textarea id="questionContent" class="form-control" rows="4" required></textarea>
+                    </div>
+                    <!-- Thêm trường Status -->
+                    <div class="mb-3">
+                        <label for="questionStatus" class="form-label">Status:</label>
+                        <select id="questionStatus" class="form-control" required>
+                            <option value="Enable">Enable</option>
+                            <option value="Disable">Disable</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="btnSaveQuestion">Save Question</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Câu Hỏi -->
+<div class="modal fade" id="editQuestionModal" tabindex="-1" aria-labelledby="editQuestionModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editQuestionModalLabel">Edit Question</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editQuestionForm">
+                    <div class="mb-3">
+                        <label for="editQuestionTitle" class="form-label">Title:</label>
+                        <input type="text" id="editQuestionTitle" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editQuestionContent" class="form-label">Content:</label>
+                        <textarea id="editQuestionContent" class="form-control" rows="4" required></textarea>
+                    </div>
+                    <!-- Thêm trường Status -->
+                    <div class="mb-3">
+                        <label for="editQuestionStatus" class="form-label">Status:</label>
+                        <select id="editQuestionStatus" class="form-control" required>
+                            <option value="Enable">Enable</option>
+                            <option value="Disable">Disable</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="btnUpdateQuestion">Update Question</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let currentPage = 1;
+const pageSize = 3;
+let totalQuestions = 0;
+const authToken = localStorage.getItem('authToken');
+let user = JSON.parse(authToken);
+
+function highlightKeyword(keyword) {
+    const elements = document.querySelectorAll('.card-text');
+
+    elements.forEach(element => {
+        const text = element.textContent;
+
+        if (text.includes(keyword)) {
+            const highlightedText = text.replace(new RegExp(`(${keyword})`, 'gi'), '<span style="background-color: yellow;">$1</span>');
+            element.innerHTML = highlightedText;
+        }
+    });
+}
+
+$(document).ready(() => {
+    loadQuestion(1);
+    $('#applyFilter').on('click', () => loadQuestion(1)); // Sửa lại để reset về trang 1 khi áp dụng filter
+    const authToken = localStorage.getItem('authToken');
+    if (!authToken) {
+        $('#addQuestion').hide(); // Ẩn nút tạo câu hỏi nếu không có authToken
+    }
+
+    // Mở modal khi nhấn nút "Add Question"
+    $('#addQuestion').on('click', () => {
+        $('#createQuestionModal').modal('show');
+    });
+
+    // Lưu câu hỏi khi nhấn nút "Save Question"
+    $('#btnSaveQuestion').on('click', () => {
+        if (!SaveValidation()) {
+            return;
+        }
+        const title = $('#questionTitle').val();
+        const content = $('#questionContent').val();
+        const questionStatus = $('#questionStatus').val() === "Enable";
+        // Gửi dữ liệu đến API
+        $.ajax({
+            url: 'http://localhost:8080/api/questions', // Địa chỉ API của bạn
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                title: title,
+                content: content,
+                userId: user.userId,
+                status: questionStatus
+            }),
+            success: function (response) {
+                console.log('Question saved:', response);
+                $('#questionTitle').val('');
+                $('#questionContent').val('');
+                $('#createQuestionModal').modal('hide');
+                loadQuestion(1); // Tải lại danh sách câu hỏi
+            },
+            error: function (xhr, status, error) {
+                console.error('Error:', error);
+                alert('An error occurred while saving the question.');
+            }
+        });
+    });
+});
+
+function SaveValidation() {
+    if ($('#questionTitle').val().trim() === '') {
+        alert(`QuestionTitle can't be empty`);
+        return false;
+    }
+    if ($('#questionContent').val().trim() === '') {
+        alert(`QuestionContent can't be empty`);
+        return false;
+    }
+    return true;
+}
+
+function UpdateValidation() {
+    if ($('#editQuestionTitle').val().trim() === '') {
+        alert(`QuestionTitle can't be empty`);
+        return false;
+    }
+    if ($('#editQuestionContent').val().trim() === '') {
+        alert(`QuestionContent can't be empty`);
+        return false;
+    }
+    return true;
+}
+
+function deleteQuestion(questionId) {
+    console.log(questionId);
+    if (confirm("Are you sure you want to delete this question? This action cannot be undone.")) {
+        $.ajax({
+            url: `http://localhost:8080/api/questions/${questionId}`, // Địa chỉ API xóa câu hỏi
+            method: 'DELETE',
+            success: function (response) {
+                console.log('Question deleted:', response);
+                loadQuestion(1); // Tải lại danh sách câu hỏi sau khi xóa thành công
+            },
+            error: function (xhr, status, error) {
+                console.error('Error:', error);
+                alert('An error occurred while deleting the question.');
+            }
+        });
+    }
+}
+
+function updateQuestion(questionId) {
+    $.ajax({
+        url: `http://localhost:8080/api/questions/${questionId}`,
+        method: 'GET',
+        success: function (question) {
+            // Đặt giá trị cho các trường trong modal
+            $('#editQuestionTitle').val(question.title);
+            $('#editQuestionContent').val(question.content);
+            $('#editQuestionStatus').val(question.status === true ? "Enable" : "Disable");
+            $('#editQuestionModal').data('questionId', questionId).modal('show');
+        },
+        error: function (xhr, status, error) {
+            console.error('Error:', error);
+            alert('An error occurred while fetching the question details.');
+        }
+    });
+}
+
+$('#btnUpdateQuestion').on('click', () => {
+    if (!UpdateValidation()) {
+        return;
+    }
+
+    const questionId = $('#editQuestionModal').data('questionId');
+    const updatedTitle = $('#editQuestionTitle').val();
+    const updatedContent = $('#editQuestionContent').val();
+    const updatedQuestionStatus = $('#editQuestionStatus').val() === "Enable";
+    $.ajax({
+        url: `http://localhost:8080/api/questions/${questionId}`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify({
+            title: updatedTitle,
+            content: updatedContent,
+            status: updatedQuestionStatus
+        }),
+        success: function (response) {
+            console.log('Question updated:', response);
+            $('#editQuestionModal').modal('hide');
+            loadQuestion(1); // Tải lại danh sách câu hỏi
+        },
+        error: function (xhr, status, error) {
+            console.error('Error:', error);
+            alert('An error occurred while updating the question.');
+        }
+    });
+});
+
+function loadQuestion(page) {
+    const keyword = $('#keyword').val();
+    const sort = $('#sort').val();
+    const createdTime = [];
+    $('input[name="dateFilter"]:checked').each(function () {
+        createdTime.push(parseInt($(this).val()));
+    });
+
+    $.ajax({
+        url: 'http://localhost:8080/api/questions',
+        method: 'GET',
+        data: {
+            questionContent: keyword,
+            sort: sort,
+            createdTime: createdTime.toString(),
+            pageNumber: page,
+            pageSize: pageSize
+        },
+        success: function (data) {
+            currentPage = page;
+            totalQuestions = data.totalItems;
+            renderPagination(totalQuestions);
+            $('#blogList').empty();
+
+            var html = '';
+            data.questions.forEach(question => {
+                html += `
+                    <div class="col-12">
+                        <div class="card p-3">
+                            <a href="/questions/details/${question.questionId}" class="question-link">
+                                <h2 class="card-title">${question.title}</h2>
+                            </a>
+                            <div class="d-flex align-items-center mb-2">
+                                <img src="${question.avatar}" alt="Author Avatar" class="rounded-circle me-2" style="width: 40px; height: 40px;">
+                                <p class="card-text mb-0">By ${question.author}</p>
+                            </div>
+                            <p class="card-text">${question.content}</p>
+                            <p class="card-text text-muted">${question.createdDate}</p>
+                            <p class="card-text">Answers: ${question.totalAnswer}</p>
+                `;
+
+                if (authToken) {
+                    if (user.userId == question.userId || user.roleId == 1) {
+                        html += `
+                            <div class="mt-2">
+                                <button class="btn btn-warning btn-edit" onclick="updateQuestion(${question.questionId})">
+                                    <i class="bi bi-pencil-square"></i> Edit
+                                </button>
+                                <button onclick="deleteQuestion(${question.questionId})" class="btn btn-danger btn-delete">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+
+                html += `</div></div>`;
+            });
+
+            $('#blogList').html(html);
+            highlightKeyword(keyword);
+        },
+        error: function (xhr, status, error) {
+            console.error('Error:', error);
+            alert('An error occurred while loading questions.');
+        }
+    });
+}
+
+function renderPagination(totalQuestions) {
+    const totalPages = Math.ceil(totalQuestions / pageSize);
+    const pagination = document.getElementById("pagination");
+    pagination.innerHTML = ""; // Xóa các nút phân trang hiện tại
+
+    // Nút "Prev"
+    const prevButton = document.createElement("button");
+    prevButton.textContent = "Prev";
+    prevButton.disabled = currentPage === 1; // Vô hiệu hóa nếu đang ở trang đầu tiên
+    prevButton.onclick = () => loadQuestion(currentPage - 1);
+    pagination.appendChild(prevButton);
+
+    // Các nút số trang
+    for (let i = 1; i <= totalPages; i++) {
+        const pageButton = document.createElement("button");
+        pageButton.textContent = i;
+        pageButton.className = (i === currentPage) ? "active" : ""; // Đổi màu cho trang hiện tại
+        pageButton.onclick = () => loadQuestion(i); // Gọi hàm loadQuestion với trang tương ứng
+        pagination.appendChild(pageButton);
+    }
+
+    // Nút "Next"
+    const nextButton = document.createElement("button");
+    nextButton.textContent = "Next";
+    nextButton.disabled = currentPage === totalPages; // Vô hiệu hóa nếu đang ở trang cuối
+    nextButton.onclick = () => loadQuestion(currentPage + 1);
+    pagination.appendChild(nextButton);
+}
+
+</script>
+</body>
+</html>
